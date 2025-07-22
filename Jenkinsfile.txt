@@ -7,19 +7,14 @@ pipeline {
     }
 
     environment {
-        // Repo directories
         BACKEND_DIR = 'crud_backend/crud_backend-main'
         FRONTEND_DIR = 'crud_frontend/crud_frontend-main'
-
-        // S3 bucket
         S3_BUCKET = 'fullstack-s3990'
 
-        // Tomcat credentials and URL
         TOMCAT_URL = 'http://localhost:9090/manager/text'
         TOMCAT_USER = 'admin'
         TOMCAT_PASS = 'admin'
 
-        // Final WAR name
         WAR_PATH = 'springapp1.war'
     }
 
@@ -57,7 +52,7 @@ pipeline {
             steps {
                 dir("${env.BACKEND_DIR}") {
                     sh 'mvn clean package'
-                    sh "cp target/*.war ${env.WAR_PATH}"
+                    sh "cp target/*.war ../../${WAR_PATH}"
                 }
             }
         }
