@@ -9,13 +9,13 @@ pipeline {
     environment {
         BACKEND_DIR = 'crud_backend/crud_backend-main'
         FRONTEND_DIR = 'crud_frontend/crud_frontend-main'
-        S3_BUCKET = 'fullstack-s3990'
-
+        
         TOMCAT_URL = 'http://localhost:9090/manager/text'
         TOMCAT_USER = 'admin'
         TOMCAT_PASS = 'admin'
-
-        WAR_PATH = 'springapp1.war'
+        
+        BACKEND_WAR = 'springapp1.war'
+        FRONTEND_WAR = 'frontapp1.war'
     }
 
     stages {
@@ -38,12 +38,14 @@ pipeline {
             }
         }
 
-        stage('Upload Frontend to S3') {
+        stage('Package Frontend as WAR') {
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
-                    dir("${env.FRONTEND_DIR}/dist") {
-                        sh "aws s3 sync . s3://${env.S3_BUCKET}/ --delete"
-                    }
+                dir("${env.FRONTEND_DIR}") {
+                    sh """
+                        mkdir -p frontapp1_war/WEB-INF
+                        cp -r build/* frontapp1_war/
+                        jar -cvf ../../${FRONTEND_WAR} -C frontapp1_war .
+                    """
                 }
             }
         }
@@ -52,18 +54,30 @@ pipeline {
             steps {
                 dir("${env.BACKEND_DIR}") {
                     sh 'mvn clean package'
-                    sh "cp target/*.war ../../${WAR_PATH}"
+                    sh "cp target/*.war ../../${BACKEND_WAR}"
                 }
             }
         }
 
-        stage('Deploy WAR to Tomcat on Port 9090') {
+        stage('Deploy Backend to Tomcat (/springapp1)') {
             steps {
                 script {
                     sh """
                         curl -u ${TOMCAT_USER}:${TOMCAT_PASS} \\
-                          --upload-file ${WAR_PATH} \\
+                          --upload-file ${BACKEND_WAR} \\
                           "${TOMCAT_URL}/deploy?path=/springapp1&update=true"
+                    """
+                }
+            }
+        }
+
+        stage('Deploy Frontend to Tomcat (/frontapp1)') {
+            steps {
+                script {
+                    sh """
+                        curl -u ${TOMCAT_USER}:${TOMCAT_PASS} \\
+                          --upload-file ${FRONTEND_WAR} \\
+                          "${TOMCAT_URL}/deploy?path=/frontapp1&update=true"
                     """
                 }
             }
@@ -72,7 +86,8 @@ pipeline {
 
     post {
         success {
-            echo "✅ Deployed to http://54.172.97.72:9090/springapp1"
+            echo "✅ Backend: http://54.172.97.72:9090/springapp1"
+            echo "✅ Frontend: http://54.172.97.72:9090/frontapp1"
         }
         failure {
             echo "❌ Build or deployment failed"
