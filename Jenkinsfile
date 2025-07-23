@@ -9,11 +9,11 @@ pipeline {
     environment {
         BACKEND_DIR = 'crud_backend/crud_backend-main'
         FRONTEND_DIR = 'crud_frontend/crud_frontend-main'
-        
+
         TOMCAT_URL = 'http://localhost:9090/manager/text'
         TOMCAT_USER = 'admin'
         TOMCAT_PASS = 'admin'
-        
+
         BACKEND_WAR = 'springapp1.war'
         FRONTEND_WAR = 'frontapp1.war'
     }
@@ -25,7 +25,7 @@ pipeline {
             }
         }
 
-        stage('Build Frontend (React)') {
+        stage('Build Frontend (Vite)') {
             steps {
                 dir("${env.FRONTEND_DIR}") {
                     script {
@@ -43,7 +43,7 @@ pipeline {
                 dir("${env.FRONTEND_DIR}") {
                     sh """
                         mkdir -p frontapp1_war/WEB-INF
-                        cp -r build/* frontapp1_war/
+                        cp -r dist/* frontapp1_war/
                         jar -cvf ../../${FRONTEND_WAR} -C frontapp1_war .
                     """
                 }
@@ -86,8 +86,8 @@ pipeline {
 
     post {
         success {
-            echo "✅ Backend: http://54.172.97.72:9090/springapp1"
-            echo "✅ Frontend: http://54.172.97.72:9090/frontapp1"
+            echo "✅ Backend deployed: http://54.172.97.72:9090/springapp1"
+            echo "✅ Frontend deployed: http://54.172.97.72:9090/frontapp1"
         }
         failure {
             echo "❌ Build or deployment failed"
